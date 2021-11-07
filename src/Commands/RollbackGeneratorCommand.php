@@ -8,6 +8,7 @@ use InfyOm\Generator\Generators\API\APIControllerGenerator;
 use InfyOm\Generator\Generators\API\APIRequestGenerator;
 use InfyOm\Generator\Generators\API\APIRoutesGenerator;
 use InfyOm\Generator\Generators\API\APITestGenerator;
+use InfyOm\Generator\Generators\FactoryGenerator;
 use InfyOm\Generator\Generators\MigrationGenerator;
 use InfyOm\Generator\Generators\ModelGenerator;
 use InfyOm\Generator\Generators\RepositoryGenerator;
@@ -17,11 +18,7 @@ use InfyOm\Generator\Generators\Scaffold\MenuGenerator;
 use InfyOm\Generator\Generators\Scaffold\RequestGenerator;
 use InfyOm\Generator\Generators\Scaffold\RoutesGenerator;
 use InfyOm\Generator\Generators\Scaffold\ViewGenerator;
-use InfyOm\Generator\Generators\TestTraitGenerator;
-use InfyOm\Generator\Generators\VueJs\ControllerGenerator as VueJsControllerGenerator;
-use InfyOm\Generator\Generators\VueJs\ModelJsConfigGenerator;
-use InfyOm\Generator\Generators\VueJs\RoutesGenerator as VueJsRoutesGenerator;
-use InfyOm\Generator\Generators\VueJs\ViewGenerator as VueJsViewGenerator;
+use InfyOm\Generator\Utils\FileUtil;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 
@@ -68,21 +65,33 @@ class RollbackGeneratorCommand extends Command
      */
     public function handle()
     {
-        if (!in_array($this->argument('type'), [
+        $type = $this->argument('type');
+        if (!in_array($type, [
             CommandData::$COMMAND_TYPE_API,
             CommandData::$COMMAND_TYPE_SCAFFOLD,
             CommandData::$COMMAND_TYPE_API_SCAFFOLD,
-            CommandData::$COMMAND_TYPE_VUEJS,
         ])) {
             $this->error('invalid rollback type');
         }
 
-        $migrate = $this->option('migrate');
-
         $this->commandData = new CommandData($this, $this->argument('type'));
+        $this->commandData->fireEvent($type, FileUtil::FILE_DELETING);
         $this->commandData->config->mName = $this->commandData->modelName = $this->argument('model');
 
-        $this->commandData->config->init($this->commandData, ['tableName', 'prefix']);
+        $this->commandData->config->init($this->commandData, ['tableName', 'prefix', 'plural', 'views']);
+
+        $views = $this->commandData->getOption('views');
+        if (!empty($views)) {
+            $views = explode(',', $views);
+            $viewGenerator = new ViewGenerator($this->commandData);
+            $viewGenerator->rollback($views);
+
+            $this->info('Generating autoload files');
+            $this->composer->dumpOptimized();
+            $this->commandData->fireEvent($type, FileUtil::FILE_DELETED);
+
+            return;
+        }
 
         $migrationGenerator = new MigrationGenerator($this->commandData);
         $migrationGenerator->rollback();
@@ -114,37 +123,26 @@ class RollbackGeneratorCommand extends Command
         $routeGenerator = new RoutesGenerator($this->commandData);
         $routeGenerator->rollback();
 
-        $controllerGenerator = new VueJsControllerGenerator($this->commandData);
-        $controllerGenerator->rollback();
-
-        $routesGenerator = new VueJsRoutesGenerator($this->commandData);
-        $routesGenerator->rollback();
-
-        $viewGenerator = new VueJsViewGenerator($this->commandData);
-        $viewGenerator->rollback();
-
-        $modelJsConfigGenerator = new ModelJsConfigGenerator($this->commandData);
-        $modelJsConfigGenerator->rollback();
-
         if ($this->commandData->getAddOn('tests')) {
             $repositoryTestGenerator = new RepositoryTestGenerator($this->commandData);
             $repositoryTestGenerator->rollback();
-
-            $testTraitGenerator = new TestTraitGenerator($this->commandData);
-            $testTraitGenerator->rollback();
 
             $apiTestGenerator = new APITestGenerator($this->commandData);
             $apiTestGenerator->rollback();
         }
 
+        $factoryGenerator = new FactoryGenerator($this->commandData);
+        $factoryGenerator->rollback();
+
         if ($this->commandData->config->getAddOn('menu.enabled')) {
             $menuGenerator = new MenuGenerator($this->commandData);
             $menuGenerator->rollback();
         }
-        if (!$migrate) {
-            $this->info('Generating autoload files');
-            $this->composer->dumpOptimized();
-        }
+
+        $this->info('Generating autoload files');
+        $this->composer->dumpOptimized();
+
+        $this->commandData->fireEvent($type, FileUtil::FILE_DELETED);
     }
 
     /**
@@ -157,7 +155,8 @@ class RollbackGeneratorCommand extends Command
         return [
             ['tableName', null, InputOption::VALUE_REQUIRED, 'Table Name'],
             ['prefix', null, InputOption::VALUE_REQUIRED, 'Prefix for all files'],
-            ['migrate', null, InputOption::VALUE_NONE, 'specify if auto migrate'],
+            ['plural', null, InputOption::VALUE_REQUIRED, 'Plural Model name'],
+            ['views', null, InputOption::VALUE_REQUIRED, 'Views to rollback'],
         ];
     }
 
@@ -170,7 +169,7 @@ class RollbackGeneratorCommand extends Command
     {
         return [
             ['model', InputArgument::REQUIRED, 'Singular Model name'],
-            ['type', InputArgument::REQUIRED, 'Rollback type: (api / scaffold / scaffold_api)'],
+            ['type', InputArgument::REQUIRED, 'Rollback type: (api / scaffold / api_scaffold)'],
         ];
     }
 }

@@ -1,7 +1,7 @@
 {
-    "name": "hashanubhav/laravel-generator",
+    "name": "infyomlabs/laravel-generator",
     "type": "library",
-    "description": "Laravel Scaffold and API Generator",
+    "description": "InfyOm Laravel Generator",
     "keywords": [
         "laravel",
         "api",
@@ -19,19 +19,14 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "Anubhav Anand",
-            "email": "anubhavanand884@gmail.com"
-        },
-        {
             "name": "Mitul Golakiya",
             "email": "me@mitul.me"
         }
     ],
     "require": {
-        "php": "^7.3|^8.0",
-        "illuminate/support": "^8.0",
-        "prettus/l5-repository": "2.7.2",
-        "laracasts/flash": "~3.2"
+        "php": ">=7.2",
+        "illuminate/support": "^6.0.0",
+        "laracasts/flash": "~3.0"
     },
     "require-dev": {
         "phpunit/phpunit": "~5.0",

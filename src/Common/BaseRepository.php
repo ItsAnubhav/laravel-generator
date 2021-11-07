@@ -4,7 +4,6 @@ namespace InfyOm\Generator\Common;
 
 use Exception;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Log;
 
 abstract class BaseRepository extends \Prettus\Repository\Eloquent\BaseRepository
 {
@@ -26,7 +25,9 @@ abstract class BaseRepository extends \Prettus\Repository\Eloquent\BaseRepositor
         $this->skipPresenter($temporarySkipPresenter);
 
         $model = $this->updateRelations($model, $attributes);
-        $model->save();
+        $model->withoutEvents(function () use ($model) {
+            $model->save();
+        });
 
         return $this->parserResult($model);
     }
@@ -40,7 +41,9 @@ abstract class BaseRepository extends \Prettus\Repository\Eloquent\BaseRepositor
         $this->skipPresenter($temporarySkipPresenter);
 
         $model = $this->updateRelations($model, $attributes);
-        $model->save();
+        $model->withoutEvents(function () use ($model) {
+            $model->save();
+        });
 
         return $this->parserResult($model);
     }
@@ -59,15 +62,7 @@ abstract class BaseRepository extends \Prettus\Repository\Eloquent\BaseRepositor
                         if (array_search('', $new_values) !== false) {
                             unset($new_values[array_search('', $new_values)]);
                         }
-//                        if(count(array_values($new_values)) === 0){
-//                            $pivot = $model->$key()->detach(array_values($new_values));
-//                        }else{
-                            $pivot = $model->$key()->sync(array_values($new_values));
-                        //}
-                        if ((count($pivot['attached']) + count($pivot['detached']) + count($pivot['updated'])) > 0) {
-                            $model->touch();
-                        }
-
+                        $model->$key()->sync(array_values($new_values));
                         break;
                     case 'Illuminate\Database\Eloquent\Relations\BelongsTo':
                         $model_key = $model->$key()->getQualifiedForeignKeyName();

@@ -1,6 +1,7 @@
 <?php
 
 namespace InfyOm\Generator\Common;
+
 use Illuminate\Support\Str;
 
 class GeneratorFieldRelation
@@ -8,6 +9,7 @@ class GeneratorFieldRelation
     /** @var string */
     public $type;
     public $inputs;
+    public $relationName;
 
     public static function parseRelation($relationInput)
     {
@@ -15,37 +17,49 @@ class GeneratorFieldRelation
 
         $relation = new self();
         $relation->type = array_shift($inputs);
-        $relation->inputs = $inputs;
+        $modelWithRelation = explode(':', array_shift($inputs)); //e.g ModelName:relationName
+        if (count($modelWithRelation) == 2) {
+            $relation->relationName = $modelWithRelation[1];
+            unset($modelWithRelation[1]);
+        }
+        $relation->inputs = array_merge($modelWithRelation, $inputs);
 
         return $relation;
     }
 
-    public function getRelationFunctionText()
+    public function getRelationFunctionText($relationText = null)
     {
-        $modelName = $this->inputs[0];
+        $singularRelation = (!empty($this->relationName)) ? $this->relationName : Str::camel($relationText);
+        $pluralRelation = (!empty($this->relationName)) ? $this->relationName : Str::camel(Str::plural($relationText));
+
         switch ($this->type) {
             case '1t1':
-                $functionName = Str::camel($modelName);
+                $functionName = $singularRelation;
                 $relation = 'hasOne';
                 $relationClass = 'HasOne';
                 break;
             case '1tm':
-                $functionName = Str::camel(Str::plural($modelName));
+                $functionName = $pluralRelation;
                 $relation = 'hasMany';
                 $relationClass = 'HasMany';
                 break;
             case 'mt1':
-                $functionName = Str::camel($modelName);
+                if (!empty($this->relationName)) {
+                    $singularRelation = $this->relationName;
+                } elseif (isset($this->inputs[1])) {
+                    $singularRelation = Str::camel(str_replace('_id', '', strtolower($this->inputs[1])));
+                }
+                $functionName = $singularRelation;
                 $relation = 'belongsTo';
                 $relationClass = 'BelongsTo';
                 break;
             case 'mtm':
-                $functionName = Str::camel(Str::plural($modelName));
+                $functionName = $pluralRelation;
                 $relation = 'belongsToMany';
                 $relationClass = 'BelongsToMany';
                 break;
             case 'hmt':
-                $functionName = Str::camel(Str::plural($modelName));
+                $functionName = $pluralRelation;
                 $relation = 'hasManyThrough';
                 $relationClass = 'HasManyThrough';
                 break;

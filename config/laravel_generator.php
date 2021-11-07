@@ -11,7 +11,7 @@ return [
 
     'path' => [
 
-        'migration'         => base_path('database/migrations/'),
+        'migration'         => database_path('migrations/'),
 
         'model'             => app_path('Models/'),
 
@@ -20,8 +20,6 @@ return [
         'repository'        => app_path('Repositories/'),
 
         'routes'            => base_path('routes/web.php'),
-
-        'lang'              => base_path('resources/lang/en/lang.php'),
 
         'api_routes'        => base_path('routes/api.php'),
 
@@ -33,19 +31,27 @@ return [
 
         'api_controller'    => app_path('Http/Controllers/API/'),
 
-        'test_trait'        => base_path('tests/traits/'),
+        'api_resource'      => app_path('Http/Resources/'),
 
-        'repository_test'   => base_path('tests/'),
+        'repository_test'   => base_path('tests/Repositories/'),
 
-        'api_test'          => base_path('tests/'),
+        'api_test'          => base_path('tests/APIs/'),
 
-        'views'             => base_path('resources/views/'),
+        'tests'             => base_path('tests/'),
 
-        'schema_files'      => base_path('resources/model_schemas/'),
+        'views'             => resource_path('views/'),
 
-        'templates_dir'     => base_path('resources/infyom/infyom-generator-templates/'),
+        'schema_files'      => resource_path('model_schemas/'),
 
-        'modelJs'           => base_path('resources/assets/js/models/'),
+        'templates_dir'     => resource_path('infyom/infyom-generator-templates/'),
+
+        'seeder'            => database_path('seeds/'),
+
+        'database_seeder'   => database_path('seeds/DatabaseSeeder.php'),
+
+        'factory'           => database_path('factories/'),
+
+        'view_provider'     => app_path('Providers/ViewServiceProvider.php'),
     ],
 
     /*
@@ -67,9 +73,17 @@ return [
 
         'api_controller'    => 'App\Http\Controllers\API',
 
+        'api_resource'      => 'App\Http\Resources',
+
         'request'           => 'App\Http\Requests',
 
         'api_request'       => 'App\Http\Requests\API',
+
+        'repository_test'   => 'Tests\Repositories',
+
+        'api_test'          => 'Tests\APIs',
+
+        'tests'             => 'Tests',
     ],
 
     /*
@@ -110,9 +124,19 @@ return [
 
     'options' => [
 
-        'softDelete' => false,
+        'softDelete' => true,
+
+        'save_schema_file' => true,
+
+        'localized' => false,
 
         'tables_searchable_default' => false,
+
+        'repository_pattern' => true,
+
+        'resources' => false,
+
+        'excluded_fields' => ['id'], // Array of columns that doesn't required while creating module
     ],
 
     /*
@@ -146,7 +170,7 @@ return [
 
         'tests'         => true,
 
-        'datatables'    => true,
+        'datatables'    => false,
 
         'menu'          => [
 
@@ -181,5 +205,16 @@ return [
     |
     */
     'ignore_model_prefix' => false,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Specify custom doctrine mappings as per your need
+    |--------------------------------------------------------------------------
+    |
+    */
+    'from_table' => [
+
+        'doctrine_mappings' => [],
+    ],
 
 ];

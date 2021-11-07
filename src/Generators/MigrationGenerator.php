@@ -19,7 +19,7 @@ class MigrationGenerator extends BaseGenerator
     public function __construct($commandData)
     {
         $this->commandData = $commandData;
-        $this->path = config('infyom.laravel_generator.path.migration', base_path('database/migrations/'));
+        $this->path = config('infyom.laravel_generator.path.migration', database_path('migrations/'));
     }
 
     public function generate()
@@ -32,7 +32,7 @@ class MigrationGenerator extends BaseGenerator
 
         $tableName = $this->commandData->dynamicVars['$TABLE_NAME$'];
 
-        $fileName = date('Y_m_d_His').'_'.'create_'.$tableName.'_table.php';
+        $fileName = date('Y_m_d_His').'_'.'create_'.strtolower($tableName).'_table.php';
 
         FileUtil::createFile($this->path, $fileName, $templateData);
 
@@ -46,15 +46,8 @@ class MigrationGenerator extends BaseGenerator
         $foreignKeys = [];
         $createdAtField = null;
         $updatedAtField = null;
-        $primaryKeyText = '$table->primary([ '; 
 
         foreach ($this->commandData->fields as $field) {
-            if($field->htmlType === 'file'){
-                continue;
-            }
-            if($field->dbInput === 'hidden,mtm'){
-                continue;
-            }
             if ($field->name == 'created_at') {
                 $createdAtField = $field;
                 continue;
@@ -64,10 +57,6 @@ class MigrationGenerator extends BaseGenerator
                     continue;
                 }
             }
-            if ($field->isPrimary === true && $field->dbInput !== 'increments') {
-                $primaryKeyText .= "'" . $field->name . "',";
-            }
-
 
             $fields[] = $field->migrationText;
             if (!empty($field->foreignKeyText)) {
@@ -88,11 +77,6 @@ class MigrationGenerator extends BaseGenerator
 
         if ($this->commandData->getOption('softDelete')) {
             $fields[] = '$table->softDeletes();';
-        }
-
-        $primaryKeyText = substr($primaryKeyText, 0, -1) . "]);";
-        if($primaryKeyText !== '$table->primary([]);'){
-            $fields[] = $primaryKeyText;
         }
 
         return implode(infy_nl_tab(1, 3), array_merge($fields, $foreignKeys));

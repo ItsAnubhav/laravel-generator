@@ -2,7 +2,6 @@
 
 namespace InfyOm\Generator\Generators\Scaffold;
 
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use InfyOm\Generator\Common\CommandData;
 
@@ -18,7 +17,7 @@ class RoutesGenerator
     private $routeContents;
 
     /** @var string */
-    private $routesTemplate = '';
+    private $routesTemplate;
 
     public function __construct(CommandData $commandData)
     {
@@ -28,16 +27,7 @@ class RoutesGenerator
         if (!empty($this->commandData->config->prefixes['route'])) {
             $this->routesTemplate = get_template('scaffold.routes.prefix_routes', 'laravel-generator');
         } else {
-            foreach ($this->commandData->fields as $field) {
-                if (!$field->inIndex) {
-                    continue;
-                }
-                if ($field->htmlType === 'file') {
-                    $this->routesTemplate = get_template('scaffold.routes.media_routes', 'laravel-generator');
-                    break;
-                }
-            }
-            $this->routesTemplate .= get_template('scaffold.routes.routes', 'laravel-generator');
+            $this->routesTemplate = get_template('scaffold.routes.routes', 'laravel-generator');
         }
         $this->routesTemplate = fill_template($this->commandData->dynamicVars, $this->routesTemplate);
     }
@@ -45,6 +35,12 @@ class RoutesGenerator
     public function generate()
     {
         $this->routeContents .= "\n\n".$this->routesTemplate;
+        $existingRouteContents = file_get_contents($this->path);
+        if (Str::contains($existingRouteContents, "Route::resource('".$this->commandData->config->mSnakePlural."',")) {
+            $this->commandData->commandObj->info('Route '.$this->commandData->config->mPlural.' is already exists, Skipping Adjustment.');
+
+            return;
+        }
 
         file_put_contents($this->path, $this->routeContents);
         $this->commandData->commandComment("\n".$this->commandData->config->mCamelPlural.' routes added.');
@@ -52,7 +48,6 @@ class RoutesGenerator
 
     public function rollback()
     {
-        Log::alert($this->routesTemplate);
         if (Str::contains($this->routeContents, $this->routesTemplate)) {
             $this->routeContents = str_replace($this->routesTemplate, '', $this->routeContents);
             file_put_contents($this->path, $this->routeContents);
